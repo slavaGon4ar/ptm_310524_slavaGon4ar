@@ -1,11 +1,12 @@
-from rest_framework import generics, filters, status
+from rest_framework import generics, filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Count, Q
-from .models import Task, SubTask
-from .serializers import TaskCreateSerializer, SubTaskCreateSerializer
+from .models import Task, SubTask,  Category
+from .serializers import TaskCreateSerializer, SubTaskCreateSerializer, CategoryCreateSerializer
 
 
 # Представление для списка задач и создания задачи
@@ -53,3 +54,16 @@ class TaskStatisticsView(APIView):
             'overdue_tasks': overdue_tasks
         }
         return Response(data)
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategoryCreateSerializer
+
+    @action(detail=True, methods=['get'])
+    def count_tasks(self, request, pk=None):
+        """
+        Кастомный метод для подсчета количества задач в каждой категории.
+        """
+        category = self.get_object()
+        task_count = Task.objects.filter(categories=category).count()
+        return Response({'category_id': category.id, 'task_count': task_count})
